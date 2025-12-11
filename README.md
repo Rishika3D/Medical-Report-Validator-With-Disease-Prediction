@@ -1,65 +1,69 @@
 # 🏥 Medical Report Validator & Disease Prediction System
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
-![Node](https://img.shields.io/badge/Node.js-v14+-green.svg)
-![Python](https://img.shields.io/badge/Python-3.8+-yellow.svg)
-![Blockchain](https://img.shields.io/badge/Blockchain-Ethereum-lightgrey.svg)
+![License](https://img.shields.io/badge/License-MIT-blue.svg)
+![Node](https://img.shields.io/badge/Node.js-v14%2B-green)
+![Python](https://img.shields.io/badge/Python-3.8%2B-yellow)
+![Blockchain](https://img.shields.io/badge/Solidity-Ethereum-lightgrey)
 
-A decentralized application (DApp) designed to combat medical fraud and provide early disease detection. This project combines **Blockchain technology** for immutable report validation and **Machine Learning** for analyzing patient health data.
-
----
-
-## 📖 Overview
-
-### 1. Medical Report Validator (Blockchain)
-In the current healthcare system, physical reports can be easily forged. This system solves that by:
-* **Hashing** the medical report.
-* Storing the **Hash** on the Ethereum Blockchain.
-* Allowing third parties (insurers, doctors) to verify report authenticity by comparing the uploaded document's hash against the blockchain record.
-
-### 2. Disease Prediction (Machine Learning)
-Uses historical medical datasets to predict the likelihood of diseases based on user input parameters.
-* **Heart & Blood Analysis:** Analyzing ECG and blood test results.
-* **Pancreatic Health:** Detection of pancreatic disorders.
+A hybrid Decentralized Application (DApp) that combines **Blockchain technology** for immutable medical record validation and **Machine Learning** for predictive health analysis.
 
 ---
 
-## 🚀 Key Features
-
-* **Immutable Records:** Once a report hash is stored on the blockchain, it cannot be altered.
-* **Fraud Detection:** Instantly flags if a medical report has been tampered with (even a single pixel change).
-* **Predictive Analytics:** ML models (Random Forest/Decision Trees) to assess health risks.
-* **Secure Database:** SQL integration for managing user profiles and non-critical metadata.
-* **User Dashboard:** Interface for patients to upload reports and for doctors/validators to verify them.
+## 📖 Table of Contents
+- [Overview](#-overview)
+- [Features](#-features)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Prerequisites](#-prerequisites)
+- [Installation Guide](#-installation-guide)
+- [Running the Application](#-running-the-application)
+- [Machine Learning Models](#-machine-learning-models)
+- [Contributing](#-contributing)
 
 ---
 
-## 🛠️ Tech Stack
+## 🔍 Overview
 
-### Frontend & Backend
-* **Node.js & Express:** Server-side logic and API handling.
-* **HTML/CSS/JavaScript:** User interface.
-* **Web3.js:** To interact with the Ethereum blockchain.
+This project addresses two major challenges in healthcare:
+1.  **Medical Fraud:** Ensuring medical reports are authentic and haven't been tampered with. We use **Blockchain** to store a cryptographic hash of the report, creating an immutable proof of existence.
+2.  **Early Diagnosis:** Using **Machine Learning** on patient data (ECG, Blood, Pancreas parameters) to predict the risk of diseases early.
 
-### Machine Learning
-* **Python:** Core programming language for ML.
-* **Jupyter Notebooks:** For data cleaning, analysis, and model training (`.ipynb` files).
-* **Libraries:** Pandas, NumPy, Scikit-learn, Matplotlib.
+---
 
-### Database & Blockchain
-* **MySQL:** For storing user credentials and query logs.
-* **Solidity:** Smart Contract development.
-* **Ganache/Testnet:** Local blockchain for testing transactions.
+## 🚀 Features
+
+### ✅ Blockchain Validator
+* **Tamper-Proof:** Reports are hashed, and the hash is stored on the Ethereum blockchain.
+* **Verification:** Patients or doctors can upload a document to verify if it matches the original record on the blockchain.
+* **Decentralized:** Removes reliance on a single central authority for verification.
+
+### 🧠 Disease Prediction (ML)
+* **ECG & Blood Analysis:** Predicts heart and blood-related issues based on clinical data.
+* **Pancreatic Health:** Analyzes specific biomarkers to detect pancreatic diseases.
+* **Data Visualization:** Insightful plots and metrics available in the Jupyter Notebooks.
+
+---
+
+## 🛠 Tech Stack
+
+| Component | Technology |
+| :--- | :--- |
+| **Frontend** | HTML, CSS, JavaScript |
+| **Backend** | Node.js, Express.js |
+| **Blockchain** | Solidity (Smart Contracts), Web3.js |
+| **Database** | MySQL (Relational Data) |
+| **ML/Data Science** | Python, Pandas, Scikit-Learn, Jupyter |
 
 ---
 
 ## 📂 Project Structure
 
 ```bash
-├── backend/            # Server-side controllers and routes
-├── ECGandBlood.ipynb   # ML training for Heart/Blood disease
-├── pancreas.ipynb      # ML training for Pancreatic disease
-├── Final.ipynb         # Consolidated model testing and results
-├── queries.sql         # Database schema and initial tables
-├── package.json        # Node.js dependencies
-└── README.md           # Documentation
+├── backend/            # Backend logic, API routes, and controllers
+├── ECGandBlood.ipynb   # ML Model: Heart & Blood disease analysis
+├── pancreas.ipynb      # ML Model: Pancreas disease prediction
+├── Final.ipynb         # Consolidated ML experiments and results
+├── queries.sql         # SQL Database schema and table creation scripts
+├── package.json        # Node.js dependencies and scripts
+├── .gitignore          # Files to ignore in Git
+└── README.md           # Project Documentation
