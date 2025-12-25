@@ -13,6 +13,7 @@ import { NotificationsPanel } from './NotificationsPanel';
 import { AIChatAssistant } from './AIChatAssistant';
 import { KeyboardShortcuts } from './KeyboardShortcuts';
 import { Search, Bell, User, Upload, Sparkles } from 'lucide-react';
+import { WalletConnect } from './WalletConnect';
 
 export function Dashboard() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -63,6 +64,9 @@ export function Dashboard() {
               </p>
             </div>
             <div className="flex items-center gap-4">
+              {/* Wallet Connection */}
+              <WalletConnect />
+              
               {/* Search Bar */}
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-cyan-400" size={18} />

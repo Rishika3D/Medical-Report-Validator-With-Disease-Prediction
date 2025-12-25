@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Card } from './ui/card';
 import { Upload, File, X, CheckCircle, AlertCircle, Sparkles, FileText } from 'lucide-react';
+import { PredictionContainer } from "./PredictionContainer";   // ✅ ADDED
 
 interface UploadedFile {
   id: string;
@@ -66,7 +67,6 @@ export function UploadView() {
 
     setUploadedFiles(prev => [...prev, newFile]);
 
-    // Simulate upload progress
     let progress = 0;
     const interval = setInterval(() => {
       progress += 10;
@@ -117,7 +117,7 @@ export function UploadView() {
             <div>
               <h4 className="text-white mb-2">Drop your files here or click to browse</h4>
               <p className="text-sm text-gray-400">
-                Supports: PDF, CSV, XLSX, JSON (Max 10MB per file)
+                Supports: PDF, CSV, XLSX, JSON, PNG, JPEG, JPG(Max 10MB per file)
               </p>
             </div>
 
@@ -126,7 +126,7 @@ export function UploadView() {
                 type="file"
                 className="hidden"
                 onChange={handleFileInput}
-                accept=".pdf,.csv,.xlsx,.json"
+                accept=".pdf,.csv,.xlsx,.json,.png,.jpg,.jpeg"
               />
               <span className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-xl hover:from-purple-600 hover:to-purple-700 transition-all neon-glow-purple hover:scale-[1.02] transform">
                 <Upload size={18} />
@@ -240,6 +240,11 @@ export function UploadView() {
           </button>
         </Card>
       )}
+
+      {/* AI PREDICTION + VALIDATION SECTION */}
+      <div className="mt-10">
+        <PredictionContainer />   {/* ✅ FULL WORKING PREDICTION UI */}
+      </div>
     </div>
   );
 }
