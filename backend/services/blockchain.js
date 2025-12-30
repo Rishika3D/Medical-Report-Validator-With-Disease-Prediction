@@ -7,15 +7,20 @@ import { fileURLToPath } from "url";
 // 1. Initialize Environment Variables
 dotenv.config();
 
-// 2. Fix for missing __dirname in ES Modules
-// In ESM, __dirname doesn't exist, so we recreate it manually
+// ... imports ...
+
+// 1. Setup path helpers
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 3. Load the ABI securely
-// Go up one level (..) to find the 'abi' folder
-const abiPath = path.resolve(__dirname, "../abi/ReportValidator.json");
+// 2. Point to the .env (Up 2 levels to root)
+const envPath = path.resolve(__dirname, "../../.env");
+dotenv.config({ path: envPath });
 
+// 3. FIX THE ABI PATH HERE:
+const abiPath = path.resolve(__dirname, "../../medchain-smart-contracts/artifacts/contracts/medical.sol/ReportValidator.json");
+
+// ... rest of the file checks and code ...
 if (!fs.existsSync(abiPath)) {
     throw new Error(`❌ ABI not found at: ${abiPath}`);
 }
