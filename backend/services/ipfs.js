@@ -39,7 +39,7 @@ export async function uploadToIPFS(fileBuffer, fileName) {
             headers: {
                 'Content-Type': `multipart/form-data; boundary=${data._boundary}`,
                 'pinata_api_key': process.env.IPFS_API_KEY,
-                'pinata_secret_api_key': process.env.IPFS_SECRET_KEY
+                'pinata_secret_api_key': process.env.IPFS_API_SECRET
             }
         });
 
