@@ -1,33 +1,80 @@
 // src/utils/textCleaner.js
 
-export const cleanText = (text) => {
-    if (!text) return "";
-
-    return text
-        // 1. Convert to lowercase (Standard NLP practice)
-        .toLowerCase()
-        
-        // 2. Remove "scanned" artifacts (common in OCR)
-        // Replaces newlines, tabs, and multiple spaces with a single space
-        .replace(/\s+/g, ' ')
-        
-        // 3. Remove non-printable characters (junk bytes)
-        // This regex matches anything that is NOT a valid printable character
-        .replace(/[^\x20-\x7E]/g, '')
-
-        // 4. Fix common OCR mistakes (Optional but impressive)
-        // Example: OCR often mistakes 'O' for '0' in words, or 'l' for '1'
-        // This is specific "Business Logic" you can brag about.
-        
-        // 5. Trim leading/trailing whitespace
-        .trim();
-};
-
 /**
- * Advanced: If you want to strip everything except numbers and medical units
- * Use this for specific fields like "Blood Pressure"
+ * Fix common OCR character mistakes using context-aware rules
  */
-export const extractMedicalValue = (text) => {
-    // Keeps only numbers, dots, slashes, and percent signs
-    return text.replace(/[^0-9./%]/g, '');
-};
+const fixOCRCharacters = (text) => {
+    return text
+      // O → 0 only when surrounded by digits
+      .replace(/(?<=\d)O|O(?=\d)/g, "0")
+  
+      // l / I → 1 when near digits
+      .replace(/(?<=\d)[lI]|[lI](?=\d)/g, "1")
+  
+      // S → 5 when numeric context
+      .replace(/(?<=\d)S|S(?=\d)/g, "5");
+  };
+  
+  /**
+   * Fix known OCR word confusions (domain-specific)
+   */
+  const fixWordConfusions = (text) => {
+    const CONFUSION_MAP = {
+      "tota1": "total",
+      "arnount": "amount",
+      "va1ue": "value",
+      "1tem": "item",
+      "resu1t": "result",
+      "medica1": "medical",
+    };
+  
+    return text
+      .split(" ")
+      .map(word => CONFUSION_MAP[word] || word)
+      .join(" ");
+  };
+  
+  /**
+   * Normalize numbers safely
+   */
+  const normalizeNumbers = (text) => {
+    return text.replace(/\b[\dOIl,]+\b/g, (token) => {
+      const normalized = token
+        .replace(/O/g, "0")
+        .replace(/l/g, "1")
+        .replace(/I/g, "1");
+  
+      return isNaN(normalized.replace(/,/g, "")) ? token : normalized;
+    });
+  };
+  
+  /**
+   * Main text cleaning pipeline
+   */
+  export const cleanText = (text) => {
+    if (!text) return "";
+  
+    let cleaned = text
+      .toLowerCase()
+  
+      // Normalize whitespace
+      .replace(/\s+/g, " ")
+  
+      // Remove non-printable junk
+      .replace(/[^\x20-\x7E]/g, "");
+  
+    cleaned = fixOCRCharacters(cleaned);
+    cleaned = fixWordConfusions(cleaned);
+    cleaned = normalizeNumbers(cleaned);
+  
+    return cleaned.trim();
+  };
+  
+  /**
+   * Extract numeric medical values (BP, sugar, %, etc.)
+   */
+  export const extractMedicalValue = (text) => {
+    if (!text) return "";
+    return text.replace(/[^0-9./%]/g, "");
+  };
+  
