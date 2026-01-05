@@ -1,80 +1,90 @@
-// src/utils/textCleaner.js
+import natural from "natural";
+import unorm from "unorm";
 
 /**
- * Fix common OCR character mistakes using context-aware rules
+ * Setup tokenizer & spellcheck
+ */
+const tokenizer = new natural.WordTokenizer();
+
+// Domain-specific dictionary (VERY IMPORTANT)
+const DOMAIN_WORDS = [
+  "event", "ticket", "price", "total", "amount", "medical",
+  "result", "value", "organizer", "date", "time", "venue",
+  "blood", "pressure", "sugar", "report"
+];
+
+const spellcheck = new natural.Spellcheck(DOMAIN_WORDS);
+
+/**
+ * Fix common OCR character confusions using heuristics
  */
 const fixOCRCharacters = (text) => {
-    return text
-      // O → 0 only when surrounded by digits
-      .replace(/(?<=\d)O|O(?=\d)/g, "0")
-  
-      // l / I → 1 when near digits
-      .replace(/(?<=\d)[lI]|[lI](?=\d)/g, "1")
-  
-      // S → 5 when numeric context
-      .replace(/(?<=\d)S|S(?=\d)/g, "5");
-  };
-  
-  /**
-   * Fix known OCR word confusions (domain-specific)
-   */
-  const fixWordConfusions = (text) => {
-    const CONFUSION_MAP = {
-      "tota1": "total",
-      "arnount": "amount",
-      "va1ue": "value",
-      "1tem": "item",
-      "resu1t": "result",
-      "medica1": "medical",
-    };
-  
-    return text
-      .split(" ")
-      .map(word => CONFUSION_MAP[word] || word)
-      .join(" ");
-  };
-  
-  /**
-   * Normalize numbers safely
-   */
-  const normalizeNumbers = (text) => {
-    return text.replace(/\b[\dOIl,]+\b/g, (token) => {
-      const normalized = token
-        .replace(/O/g, "0")
-        .replace(/l/g, "1")
-        .replace(/I/g, "1");
-  
-      return isNaN(normalized.replace(/,/g, "")) ? token : normalized;
-    });
-  };
-  
-  /**
-   * Main text cleaning pipeline
-   */
-  export const cleanText = (text) => {
-    if (!text) return "";
-  
-    let cleaned = text
-      .toLowerCase()
-  
-      // Normalize whitespace
-      .replace(/\s+/g, " ")
-  
-      // Remove non-printable junk
-      .replace(/[^\x20-\x7E]/g, "");
-  
-    cleaned = fixOCRCharacters(cleaned);
-    cleaned = fixWordConfusions(cleaned);
-    cleaned = normalizeNumbers(cleaned);
-  
-    return cleaned.trim();
-  };
-  
-  /**
-   * Extract numeric medical values (BP, sugar, %, etc.)
-   */
-  export const extractMedicalValue = (text) => {
-    if (!text) return "";
-    return text.replace(/[^0-9./%]/g, "");
-  };
-  
+  return text
+    // numeric context fixes
+    .replace(/(?<=\d)O|O(?=\d)/g, "0")
+    .replace(/(?<=\d)[lI]|[lI](?=\d)/g, "1")
+    .replace(/(?<=\d)S|S(?=\d)/g, "5")
+
+    // word context fixes
+    .replace(/([a-z])1([a-z])/g, "$1l$2")
+    .replace(/([a-z])0([a-z])/g, "$1o$2");
+};
+
+/**
+ * Spell correction using natural
+ * (only correct words that look suspicious)
+ */
+const spellCorrect = (text) => {
+  const words = tokenizer.tokenize(text);
+
+  const corrected = words.map(word => {
+    // skip numbers & short tokens
+    if (!isNaN(word) || word.length < 3) return word;
+
+    // if already known, keep it
+    if (spellcheck.isCorrect(word)) return word;
+
+    // otherwise suggest best correction
+    const suggestions = spellcheck.getCorrections(word, 1);
+    return suggestions.length ? suggestions[0] : word;
+  });
+
+  return corrected.join(" ");
+};
+
+/**
+ * Main OCR text cleaning pipeline
+ */
+export const cleanText = (rawText) => {
+  if (!rawText) return "";
+
+  let text = rawText;
+
+  // 1. Unicode normalization (CRITICAL for OCR)
+  text = unorm.nfkc(text);
+
+  // 2. Lowercase
+  text = text.toLowerCase();
+
+  // 3. Normalize whitespace
+  text = text.replace(/\s+/g, " ");
+
+  // 4. Remove non-printable characters
+  text = text.replace(/[^\x20-\x7E]/g, "");
+
+  // 5. Fix OCR-specific character errors
+  text = fixOCRCharacters(text);
+
+  // 6. Spell correction
+  text = spellCorrect(text);
+
+  return text.trim();
+};
+
+/**
+ * Extract numeric medical values (BP, %, glucose, etc.)
+ */
+export const extractMedicalValue = (text) => {
+  if (!text) return "";
+  return text.replace(/[^0-9./%]/g, "");
+};
