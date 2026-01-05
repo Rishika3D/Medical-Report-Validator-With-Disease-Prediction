@@ -18,7 +18,7 @@ const envPath = path.resolve(__dirname, "../../.env");
 dotenv.config({ path: envPath });
 
 // 3. FIX THE ABI PATH HERE:
-const abiPath = path.resolve(__dirname, "../../medchain-smart-contracts/artifacts/contracts/medical.sol/ReportValidator.json");
+const abiPath = path.resolve(__dirname, "../../blockchain/artifacts/contracts/medical.sol/ReportValidator.json");
 
 // ... rest of the file checks and code ...
 if (!fs.existsSync(abiPath)) {
