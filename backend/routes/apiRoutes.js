@@ -1,8 +1,8 @@
 import express from 'express';
-import { analyzeReport } from '../controllers/reportController.js';
+import { reportController } from '../controllers/reportController.js';
 import { signup, login } from '../controllers/userController.js';
 import { upload } from '../middleware/uploadMiddleware.js';
-import { protect } from '../middleware/authMiddleware.js';
+// import { protect } from '../middleware/authMiddleware.js'; // Helper if you have it
 
 const router = express.Router();
 
@@ -10,9 +10,9 @@ const router = express.Router();
 router.post('/auth/signup', signup);
 router.post('/auth/login', login);
 
-// --- AI/Report Routes ---
-// Protected: Only logged-in users can upload
-// 'report_file' is the key name you must use in Postman/Frontend
-router.post('/analyze', protect, upload.single('report_file'), analyzeReport);
+// --- Report Routes ---
+router.post('/reports/submit', upload.single('report'), reportController.submitMedicalReport);
+router.post('/reports/verify', upload.single('report'), reportController.validateCertificate);
+router.post('/reports/repudiate', reportController.repudiateDisease);
 
 export default router;

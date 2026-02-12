@@ -36,12 +36,12 @@ export const reportController = {
             // C. Write to Blockchain
             // Note: Verify the exact function name in your Solidity contract (e.g., addReport, registerCertificate)
             // Assuming function signature: addReport(string memory _patientId, string memory _ipfsHash, bytes32 _contentHash, string memory _disease)
-            
+
             console.log("Sending transaction to blockchain...");
             const tx = await medicalContract.addReport(
-                patientId, 
-                ipfsHash, 
-                contentHash, 
+                patientId,
+                ipfsHash,
+                contentHash,
                 diseaseType
             );
 
@@ -63,9 +63,9 @@ export const reportController = {
 
         } catch (error) {
             console.error("Submission Error:", error);
-            res.status(500).json({ 
-                success: false, 
-                error: error.message || "Failed to submit report" 
+            res.status(500).json({
+                success: false,
+                error: error.message || "Failed to submit report"
             });
         }
     },
@@ -89,18 +89,18 @@ export const reportController = {
             // B. Fetch the stored hash from the Blockchain
             // Assuming contract has a view function: getReportHash(reportId) or similar
             const storedReport = await medicalContract.getReport(reportId);
-            
+
             // Note: Solidity returns data arrays/structs. You might need storedReport.contentHash or storedReport[2]
-            const storedHash = storedReport.contentHash || storedReport[2]; 
+            const storedHash = storedReport.contentHash || storedReport[2];
             const isRepudiated = storedReport.isRepudiated || storedReport[4]; // Check validation status
 
             // C. Compare
             const isValid = (storedHash === calculatedHash);
 
             if (!isValid) {
-                return res.status(200).json({ 
-                    valid: false, 
-                    message: "Document hash mismatch! This file may have been tampered with." 
+                return res.status(200).json({
+                    valid: false,
+                    message: "Document hash mismatch! This file may have been tampered with."
                 });
             }
 
@@ -132,18 +132,17 @@ export const reportController = {
      */
     repudiateDisease: async (req, res) => {
         try {
-            const { reportId, reason } = req.body;
+            const { subject, index, reason } = req.body;
 
-            if (!reportId || !reason) {
-                return res.status(400).json({ error: "Report ID and Reason are required" });
+            if (!subject || index === undefined || !reason) {
+                return res.status(400).json({ error: "Subject, Index, and Reason are required" });
             }
 
-            console.log(`Repudiating report ${reportId} for reason: ${reason}`);
+            console.log(`Repudiating report for ${subject} at index ${index} for reason: ${reason}`);
 
             // Call the smart contract function
-            // Ensure your wallet (process.env.PRIVATE_KEY) has the "Admin" role in the contract
-            const tx = await medicalContract.repudiateReport(reportId, reason);
-            
+            const tx = await medicalContract.repudiateReport(subject, index, reason);
+
             await tx.wait();
 
             res.status(200).json({
