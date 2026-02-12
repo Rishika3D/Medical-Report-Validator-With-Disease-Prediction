@@ -10,6 +10,8 @@ contract ReportValidator is AccessControl {
         bytes32 contentHash; // SHA-256 of canonicalized content, hex -> bytes32
         bytes   cid;         // CIDv1 raw bytes
         uint64  timestamp;   // unix seconds
+        bool    isRepudiated; // Status of the report
+        string  repudiationReason; // Reason for repudiation
     }
 
     mapping(address => Report[]) private _reports;
@@ -20,6 +22,13 @@ contract ReportValidator is AccessControl {
         bytes32 indexed contentHash,
         bytes cid,
         uint64 timestamp
+    );
+
+    event ReportRepudiated(
+        address indexed subject,
+        uint256 indexed reportIndex,
+        string reason,
+        address admin
     );
 
     constructor(address admin) {
@@ -39,21 +48,43 @@ contract ReportValidator is AccessControl {
         _reports[subject].push(Report({
             contentHash: contentHash,
             cid: cidBytes,
-            timestamp: uint64(block.timestamp)
+            timestamp: uint64(block.timestamp),
+            isRepudiated: false,
+            repudiationReason: ""
         }));
 
         emit ReportUploaded(msg.sender, subject, contentHash, cidBytes, uint64(block.timestamp));
     }
 
+    function repudiateReport(address subject, uint256 index, string calldata reason) 
+        external 
+        onlyRole(DEFAULT_ADMIN_ROLE) 
+    {
+        require(index < _reports[subject].length, "Report does not exist");
+        Report storage report = _reports[subject][index];
+        require(!report.isRepudiated, "Report already repudiated");
+
+        report.isRepudiated = true;
+        report.repudiationReason = reason;
+
+        emit ReportRepudiated(subject, index, reason, msg.sender);
+    }
+
     function getLatestReport(address user)
         external
         view
-        returns (bytes32 contentHash, bytes memory cid, uint64 timestamp)
+        returns (
+        bytes32 contentHash, 
+        bytes memory cid, 
+        uint64 timestamp, 
+        bool isRepudiated, 
+        string memory repudiationReason
+    )
     {
         uint256 len = _reports[user].length;
         require(len > 0, "no reports");
         Report storage r = _reports[user][len - 1];
-        return (r.contentHash, r.cid, r.timestamp);
+        return (r.contentHash, r.cid, r.timestamp, r.isRepudiated, r.repudiationReason);
     }
 
     function verifyReport(address user, uint256 index, bytes32 expectedHash)
