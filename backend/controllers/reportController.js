@@ -1,5 +1,6 @@
 import { medicalContract } from "../services/blockchain.js";
 import { uploadToIPFS, calculateFileHash } from "../services/ipfs.js";
+import { analyzeXray } from "../services/aiService.js";
 
 // Optional: If you decided on a DB (Firebase/Postgres), import it here
 // import { db } from "../config/db.js"; 
@@ -24,18 +25,32 @@ export const reportController = {
             console.log(`Processing report for: ${patientName}`);
 
             // A. Generate the Content Hash (The fingerprint)
-            // We use your service function here
             const contentHash = calculateFileHash(fileBuffer);
             console.log("Generated Hash:", contentHash);
 
+            // ML ANALYSIS
+            // We analyze the image to get a prediction
+            let mlPrediction = "Unknown";
+            let mlConfidence = 0;
+            try {
+                console.log("Analzying file with ML Model...");
+                const analysis = await analyzeXray(fileBuffer);
+                mlPrediction = analysis.condition || analysis.disease || "Unknown";
+                mlConfidence = analysis.confidence || 0;
+                console.log(`🤖 ML Prediction: ${mlPrediction} (${mlConfidence})`);
+            } catch (err) {
+                console.warn("⚠️ ML Analysis failed, proceeding with manual entry:", err.message);
+            }
+
             // B. Upload to IPFS
-            // We use your service function here
             const ipfsHash = await uploadToIPFS(fileBuffer, fileName);
             console.log("IPFS CID:", ipfsHash);
 
             // C. Write to Blockchain
-            // Note: Verify the exact function name in your Solidity contract (e.g., addReport, registerCertificate)
-            // Assuming function signature: addReport(string memory _patientId, string memory _ipfsHash, bytes32 _contentHash, string memory _disease)
+            // Assuming we might want to store the ML result on chain if the contract supported it, 
+            // but for now we just use the user provided `diseaseType` or we could override it?
+            // Let's stick to the user input `diseaseType` for the contract to be safe, 
+            // but return the ML result in the response.
 
             console.log("Sending transaction to blockchain...");
             const tx = await medicalContract.addReport(
