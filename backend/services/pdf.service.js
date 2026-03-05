@@ -1,5 +1,5 @@
 import Tesseract from "tesseract.js";
-import { pdfParse } from "pdf-parse";
+import pdfParse from "pdf-parse";
 import fs from "fs"
 import { cleanText } from "../utils/textProcess.js";
 
@@ -20,7 +20,7 @@ class OcrServices {
         try{
             const dataBuffer= fs.readFileSync(filePath);
             const data= await pdfParse(dataBuffer);
-            if(!data.text || data.text.trim.length()===0){
+            if(!data.text || data.text.trim().length === 0){
                 throw new Error("SCANNED_PDF_DETECTED"); 
             }
             

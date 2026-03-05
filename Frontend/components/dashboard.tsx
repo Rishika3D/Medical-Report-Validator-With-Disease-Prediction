@@ -17,22 +17,34 @@ import {
   LogOut,
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
-import { useState, useCallback } from "react"
-import type { AppView } from "@/app/page"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Button } from "@/components/ui/button"
+import { useState, useCallback, useRef } from "react"
+import type { AppView, SubmitResult } from "@/app/page"
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL
 
 interface DashboardProps {
   onNavigate: (view: AppView) => void
+  onUploadSuccess: (result: SubmitResult) => void
+  onLogout: () => void
   userType: "doctor" | "patient"
+  token: string
 }
 
 type NavItem = "new" | "history" | "settings"
 
-export default function Dashboard({ onNavigate, userType }: DashboardProps) {
+export default function Dashboard({ onNavigate, onUploadSuccess, onLogout, userType, token }: DashboardProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [activeNav, setActiveNav] = useState<NavItem>("new")
   const [isDragging, setIsDragging] = useState(false)
   const [uploadProgress, setUploadProgress] = useState<number | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [patientAddress, setPatientAddress] = useState("")
+  const [uploadError, setUploadError] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const navItems = [
     { id: "new" as NavItem, icon: Plus, label: "New Analysis" },
@@ -53,22 +65,58 @@ export default function Dashboard({ onNavigate, userType }: DashboardProps) {
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault()
     setIsDragging(false)
-    simulateUpload()
+    const file = e.dataTransfer.files[0]
+    if (file) setSelectedFile(file)
   }, [])
 
-  const simulateUpload = () => {
+  const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) setSelectedFile(file)
+  }
+
+  const handleSubmit = async () => {
+    if (!selectedFile) return
+    if (!patientAddress.match(/^0x[0-9a-fA-F]{40}$/)) {
+      setUploadError("Please enter a valid Ethereum address (0x...)")
+      return
+    }
+
+    setUploadError(null)
     setUploadProgress(0)
+
+    // Simulate visual progress while the real request is in flight
     const interval = setInterval(() => {
-      setUploadProgress((prev) => {
-        if (prev === null) return 0
-        if (prev >= 100) {
-          clearInterval(interval)
-          setTimeout(() => onNavigate("result"), 500)
-          return 100
-        }
-        return prev + 10
+      setUploadProgress((prev) => (prev !== null && prev < 85 ? prev + 5 : prev))
+    }, 300)
+
+    try {
+      const formData = new FormData()
+      formData.append("report", selectedFile)
+      formData.append("patientAddress", patientAddress)
+
+      const res = await fetch(`${API_URL}/reports/submit`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
       })
-    }, 200)
+
+      clearInterval(interval)
+      setUploadProgress(100)
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || "Upload failed")
+      }
+
+      setTimeout(() => {
+        onUploadSuccess(data.data as SubmitResult)
+      }, 400)
+    } catch (err: unknown) {
+      clearInterval(interval)
+      setUploadProgress(null)
+      setUploadError(err instanceof Error ? err.message : "Upload failed")
+    }
   }
 
   return (
@@ -125,12 +173,12 @@ export default function Dashboard({ onNavigate, userType }: DashboardProps) {
                 <p className="text-sm font-medium text-slate-800 truncate">John Doe</p>
                 <p className="text-xs text-slate-500 capitalize">{userType}</p>
               </div>
-              <button onClick={() => onNavigate("landing")} className="text-slate-400 hover:text-slate-600">
+              <button onClick={onLogout} className="text-slate-400 hover:text-slate-600">
                 <LogOut className="w-5 h-5" />
               </button>
             </div>
           ) : (
-            <button onClick={() => onNavigate("landing")} className="text-slate-400 hover:text-slate-600">
+            <button onClick={onLogout} className="text-slate-400 hover:text-slate-600">
               <LogOut className="w-5 h-5" />
             </button>
           )}
@@ -192,19 +240,86 @@ export default function Dashboard({ onNavigate, userType }: DashboardProps) {
             <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">New Analysis</h1>
             <p className="text-slate-600 mb-8">Upload a medical document to begin AI-powered diagnostics</p>
 
+            {/* Patient Address Field */}
+            <div className="mb-6 space-y-2">
+              <Label htmlFor="patientAddress" className="text-slate-700">
+                Patient Ethereum Address
+              </Label>
+              <Input
+                id="patientAddress"
+                value={patientAddress}
+                onChange={(e) => setPatientAddress(e.target.value)}
+                placeholder="0xABCD..."
+                disabled={uploadProgress !== null}
+                className="rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600 font-mono"
+              />
+            </div>
+
+            {/* Hidden file input */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf"
+              className="hidden"
+              onChange={handleFileInput}
+            />
+
             {/* Upload Zone */}
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
               onDrop={handleDrop}
-              onClick={() => uploadProgress === null && simulateUpload()}
-              className={`relative border-2 border-dashed rounded-2xl p-12 md:p-16 text-center cursor-pointer transition-all duration-300 ${
+              onClick={() => uploadProgress === null && !selectedFile && fileInputRef.current?.click()}
+              className={`relative border-2 border-dashed rounded-2xl p-12 md:p-16 text-center transition-all duration-300 ${
                 isDragging
                   ? "border-teal-600 bg-teal-50"
                   : "border-slate-300 bg-white hover:border-teal-400 hover:bg-slate-50"
-              } ${uploadProgress !== null ? "pointer-events-none" : ""}`}
+              } ${uploadProgress !== null ? "pointer-events-none" : selectedFile ? "" : "cursor-pointer"}`}
             >
-              {uploadProgress === null ? (
+              {uploadProgress !== null ? (
+                <div className="py-8">
+                  <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                    <motion.div
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
+                    >
+                      <Upload className="w-8 h-8 text-teal-600" />
+                    </motion.div>
+                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Uploading and analyzing...</h3>
+                  <div className="max-w-xs mx-auto">
+                    <Progress value={uploadProgress} className="h-2 mb-2" />
+                    <p className="text-sm text-slate-500">{uploadProgress}% complete</p>
+                  </div>
+                </div>
+              ) : selectedFile ? (
+                <div className="py-4">
+                  <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <FileText className="w-8 h-8 text-teal-600" />
+                  </div>
+                  <p className="text-lg font-semibold text-slate-800 mb-1">{selectedFile.name}</p>
+                  <p className="text-sm text-slate-500 mb-6">
+                    {(selectedFile.size / 1024).toFixed(1)} KB
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={(e) => { e.stopPropagation(); setSelectedFile(null) }}
+                      className="rounded-xl"
+                    >
+                      Change file
+                    </Button>
+                    <Button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); handleSubmit() }}
+                      className="bg-teal-600 hover:bg-teal-700 text-white rounded-xl"
+                    >
+                      Submit Report
+                    </Button>
+                  </div>
+                </div>
+              ) : (
                 <>
                   <motion.div animate={{ y: isDragging ? -10 : 0 }} className="flex justify-center mb-6">
                     <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center">
@@ -228,24 +343,12 @@ export default function Dashboard({ onNavigate, userType }: DashboardProps) {
                     </div>
                   </div>
                 </>
-              ) : (
-                <div className="py-8">
-                  <div className="w-16 h-16 bg-teal-50 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 1, repeat: Number.POSITIVE_INFINITY, ease: "linear" }}
-                    >
-                      <Upload className="w-8 h-8 text-teal-600" />
-                    </motion.div>
-                  </div>
-                  <h3 className="text-lg font-semibold text-slate-800 mb-4">Uploading and analyzing...</h3>
-                  <div className="max-w-xs mx-auto">
-                    <Progress value={uploadProgress} className="h-2 mb-2" />
-                    <p className="text-sm text-slate-500">{uploadProgress}% complete</p>
-                  </div>
-                </div>
               )}
             </div>
+
+            {uploadError && (
+              <p className="mt-4 text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2">{uploadError}</p>
+            )}
           </motion.div>
         </div>
       </main>
