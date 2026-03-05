@@ -10,14 +10,48 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { useState } from "react"
 import type { AppView } from "@/app/page"
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL
+
 interface AuthPageProps {
   onNavigate: (view: AppView) => void
+  onAuthSuccess: (token: string) => void
   userType: "doctor" | "patient"
   setUserType: (type: "doctor" | "patient") => void
 }
 
-export default function AuthPage({ onNavigate, userType, setUserType }: AuthPageProps) {
+export default function AuthPage({ onNavigate, onAuthSuccess, userType, setUserType }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true)
+  const [userName, setUserName] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    try {
+      const endpoint = isLogin ? "/auth/login" : "/auth/signup"
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userName, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.message || "Authentication failed")
+      }
+
+      onAuthSuccess(data.token)
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Something went wrong")
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <div
@@ -77,27 +111,17 @@ export default function AuthPage({ onNavigate, userType, setUserType }: AuthPage
               </TabsList>
             </Tabs>
 
-            <form className="space-y-4">
-              {!isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-slate-700">
-                    Full Name
-                  </Label>
-                  <Input
-                    id="name"
-                    placeholder="Dr. John Doe"
-                    className="rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600"
-                  />
-                </div>
-              )}
+            <form className="space-y-4" onSubmit={handleSubmit}>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-slate-700">
-                  Email
+                <Label htmlFor="userName" className="text-slate-700">
+                  Username
                 </Label>
                 <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
+                  id="userName"
+                  value={userName}
+                  onChange={(e) => setUserName(e.target.value)}
+                  placeholder="your_username"
+                  required
                   className="rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600"
                 />
               </div>
@@ -108,28 +132,24 @@ export default function AuthPage({ onNavigate, userType, setUserType }: AuthPage
                 <Input
                   id="password"
                   type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
+                  required
                   className="rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600"
                 />
               </div>
-              {userType === "doctor" && !isLogin && (
-                <div className="space-y-2">
-                  <Label htmlFor="license" className="text-slate-700">
-                    Medical License Number
-                  </Label>
-                  <Input
-                    id="license"
-                    placeholder="ML-123456"
-                    className="rounded-xl border-slate-200 focus:border-teal-600 focus:ring-teal-600"
-                  />
-                </div>
+
+              {error && (
+                <p className="text-sm text-red-600 bg-red-50 rounded-xl px-4 py-2">{error}</p>
               )}
+
               <Button
-                type="button"
-                onClick={() => onNavigate("dashboard")}
+                type="submit"
+                disabled={loading}
                 className="w-full bg-teal-600 hover:bg-teal-700 text-white rounded-xl py-5"
               >
-                {isLogin ? "Sign In" : "Create Account"}
+                {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
               </Button>
             </form>
 
@@ -157,7 +177,11 @@ export default function AuthPage({ onNavigate, userType, setUserType }: AuthPage
             {/* Toggle Login/Signup */}
             <p className="text-center text-sm text-slate-600 mt-6">
               {isLogin ? "Don't have an account? " : "Already have an account? "}
-              <button onClick={() => setIsLogin(!isLogin)} className="text-teal-600 hover:text-teal-700 font-medium">
+              <button
+                type="button"
+                onClick={() => { setIsLogin(!isLogin); setError(null) }}
+                className="text-teal-600 hover:text-teal-700 font-medium"
+              >
                 {isLogin ? "Sign up" : "Sign in"}
               </button>
             </p>

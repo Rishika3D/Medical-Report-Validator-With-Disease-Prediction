@@ -48,7 +48,7 @@ def predict_xray():
         result = analyze_xray_image(img_bytes)
         
         return jsonify({
-            "success": true,
+            "success": True,
             "data": result
         }), 200
 
