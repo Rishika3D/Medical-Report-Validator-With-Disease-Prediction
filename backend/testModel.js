@@ -1,4 +1,4 @@
-import { validateReportText, analyzeXray } from "./services/aiService.js";
+import { predictDiseaseLocal as validateReportText, analyzeXray } from "./services/aiService.js";
 
 async function runTests() {
     console.log("🤖 STARTING ML MODEL TESTS (Using Official Library)...\n");

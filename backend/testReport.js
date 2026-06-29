@@ -1,10 +1,12 @@
-import { medicalContract } from "./services/blockchain.js";
+import { getMedicalContract } from "./services/blockchain.js";
 import { ethers } from "ethers";
 
 async function testWrite() {
     console.log("📝 Starting Write Test (Uploading a Fake Report)...");
 
     try {
+        const medicalContract = getMedicalContract();
+
         // 1. Create Fake Data
         // In real life, these come from your PDF and IPFS upload
         const fakePatientAddress = "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266"; // Account #0 (Test)

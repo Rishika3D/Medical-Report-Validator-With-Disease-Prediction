@@ -3,46 +3,97 @@ import { ethers } from "ethers";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import { logger } from "../utils/logger.js";
 
-// 1. Initialize Environment Variables
 dotenv.config();
 
-// ... imports ...
-
-// 1. Setup path helpers
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 2. Point to the .env (Up 2 levels to root)
-const envPath = path.resolve(__dirname, "../../.env");
-dotenv.config({ path: envPath });
+// ABI location can be overridden (useful in Docker where the artifact is copied
+// to a known path). Defaults to the Hardhat build output in /blockchain.
+const ABI_PATH =
+  process.env.CONTRACT_ABI_PATH ||
+  path.resolve(
+    __dirname,
+    "../../blockchain/artifacts/contracts/medical.sol/ReportValidator.json"
+  );
 
-// 3. FIX THE ABI PATH HERE:
-const abiPath = path.resolve(__dirname, "../../blockchain/artifacts/contracts/medical.sol/ReportValidator.json");
+let contractInstance = null;
 
-// ... rest of the file checks and code ...
-if (!fs.existsSync(abiPath)) {
-    throw new Error(`❌ ABI not found at: ${abiPath}`);
+function loadAbi() {
+  if (!fs.existsSync(ABI_PATH)) {
+    throw new Error(
+      `Contract ABI not found at ${ABI_PATH}. Run \`npx hardhat compile\` inside /blockchain (or set CONTRACT_ABI_PATH).`
+    );
+  }
+  const parsed = JSON.parse(fs.readFileSync(ABI_PATH, "utf-8"));
+  return parsed.abi || parsed;
 }
 
-const rawABI = fs.readFileSync(abiPath, "utf-8");
-const contractData = JSON.parse(rawABI);
+/**
+ * True when every value required to talk to the chain is present.
+ * Lets the rest of the app degrade gracefully instead of crashing on boot.
+ */
+export function isBlockchainConfigured() {
+  return Boolean(
+    process.env.RPC_URL &&
+      process.env.PRIVATE_KEY &&
+      process.env.CONTRACT_ADDRESS
+  );
+}
 
-// Handle cases where ABI is nested in an "abi" property (Hardhat default)
-const contractABI = contractData.abi || contractData;
+/**
+ * Lazily build (and cache) the contract instance.
+ * Throws a descriptive error only when actually called — never at import time —
+ * so the API server can still serve auth/health endpoints without a chain.
+ */
+export function getMedicalContract() {
+  if (contractInstance) return contractInstance;
 
-// 4. Setup Provider & Wallet
-const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
-const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  if (!isBlockchainConfigured()) {
+    throw new Error(
+      "Blockchain not configured. Set RPC_URL, PRIVATE_KEY and CONTRACT_ADDRESS in the environment."
+    );
+  }
 
-// 5. Create Contract Instance
-const medicalContract = new ethers.Contract(
+  const abi = loadAbi();
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL);
+  const wallet = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+  contractInstance = new ethers.Contract(
     process.env.CONTRACT_ADDRESS,
-    contractABI,
+    abi,
     wallet
-);
+  );
 
-console.log("✅ Smart Contract Connected!");
+  logger.info("Smart contract initialized", {
+    address: process.env.CONTRACT_ADDRESS,
+  });
+  return contractInstance;
+}
 
-// 6. Export using ES Module syntax
-export { medicalContract };
+/**
+ * Health probe for the chain connection. Never throws — returns a status object.
+ */
+export async function getBlockchainStatus() {
+  if (!isBlockchainConfigured()) {
+    return { configured: false, connected: false };
+  }
+  try {
+    const contract = getMedicalContract();
+    const provider = contract.runner.provider;
+    const [network, blockNumber] = await Promise.all([
+      provider.getNetwork(),
+      provider.getBlockNumber(),
+    ]);
+    return {
+      configured: true,
+      connected: true,
+      chainId: Number(network.chainId),
+      blockNumber,
+      address: contract.target,
+    };
+  } catch (err) {
+    return { configured: true, connected: false, error: err.message };
+  }
+}

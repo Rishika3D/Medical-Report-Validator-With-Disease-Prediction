@@ -2,52 +2,58 @@ import axios from "axios";
 import FormData from "form-data";
 import crypto from "crypto";
 import dotenv from "dotenv";
+import { logger } from "../utils/logger.js";
 
 dotenv.config();
 
+const PINATA_URL = "https://api.pinata.cloud/pinning/pinFileToIPFS";
+const IPFS_TIMEOUT_MS = Number(process.env.IPFS_TIMEOUT_MS) || 60000;
+
 /**
- * 1. Calculate SHA-256 Hash (Required by your contract 'contentHash')
+ * SHA-256 of the file, returned as the 0x-prefixed bytes32 the contract expects.
  */
 export function calculateFileHash(fileBuffer) {
-    const hashSum = crypto.createHash('sha256');
-    hashSum.update(fileBuffer);
-    return "0x" + hashSum.digest('hex'); // Returns 0x... format
+  return "0x" + crypto.createHash("sha256").update(fileBuffer).digest("hex");
+}
+
+function isIpfsConfigured() {
+  return Boolean(
+    process.env.IPFS_JWT || (process.env.IPFS_API_KEY && process.env.IPFS_API_SECRET)
+  );
 }
 
 /**
- * 2. Upload to IPFS via Pinata
+ * Pin a file to IPFS via Pinata. Prefers JWT auth, falls back to key/secret.
  */
 export async function uploadToIPFS(fileBuffer, fileName) {
-    const url = `https://api.pinata.cloud/pinning/pinFileToIPFS`;
+  if (!isIpfsConfigured()) {
+    throw new Error("IPFS (Pinata) credentials are not configured.");
+  }
 
-    // Create a form with the file data
-    let data = new FormData();
-    data.append('file', fileBuffer, fileName);
+  const data = new FormData();
+  data.append("file", fileBuffer, fileName);
+  data.append(
+    "pinataMetadata",
+    JSON.stringify({ name: fileName, keyvalues: { project: "MediChain" } })
+  );
 
-    // Optional: Add metadata so you can find it easily on Pinata website
-    const metadata = JSON.stringify({
-        name: fileName,
-        keyvalues: {
-            project: 'MedicalValidator'
-        }
+  const authHeaders = process.env.IPFS_JWT
+    ? { Authorization: `Bearer ${process.env.IPFS_JWT}` }
+    : {
+        pinata_api_key: process.env.IPFS_API_KEY,
+        pinata_secret_api_key: process.env.IPFS_API_SECRET,
+      };
+
+  try {
+    const response = await axios.post(PINATA_URL, data, {
+      maxBodyLength: Infinity,
+      timeout: IPFS_TIMEOUT_MS,
+      headers: { ...data.getHeaders(), ...authHeaders },
     });
-    data.append('pinataMetadata', metadata);
-
-    try {
-        const response = await axios.post(url, data, {
-            maxBodyLength: "Infinity",
-            headers: {
-                'Content-Type': `multipart/form-data; boundary=${data._boundary}`,
-                'pinata_api_key': process.env.IPFS_API_KEY,
-                'pinata_secret_api_key': process.env.IPFS_API_SECRET
-            }
-        });
-
-        // This is the CID (e.g., QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco)
-        return response.data.IpfsHash; 
-
-    } catch (error) {
-        console.error("IPFS Upload Error:", error);
-        throw new Error("Failed to upload to IPFS");
-    }
+    return response.data.IpfsHash;
+  } catch (error) {
+    const detail = error.response?.data?.error || error.message;
+    logger.error("IPFS upload failed", { detail });
+    throw new Error("Failed to upload to IPFS");
+  }
 }

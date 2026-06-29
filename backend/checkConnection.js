@@ -1,6 +1,6 @@
 // Import the contract instance we created earlier
 // Ensure this path matches where you put your blockchain.js file
-import { medicalContract } from "./services/blockchain.js";
+import { getMedicalContract } from "./services/blockchain.js";
 
 async function testConnection() {
     console.log("🔄 Starting Connection Test...\n");
@@ -9,7 +9,8 @@ async function testConnection() {
         // 1. Check if the Contract Address is loaded
         // If this is undefined, your .env is not being read correctly
         console.log("1️⃣  Checking Contract Instance...");
-        const address = medicalContract.target; 
+        const medicalContract = getMedicalContract();
+        const address = medicalContract.target;
         console.log(`   ✅ Contract Address Found: ${address}`);
 
         // 2. Check the Network Connection
