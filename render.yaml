@@ -1,0 +1,61 @@
+# Render Blueprint for the MediChain backend + ML service + Postgres.
+# Deploy the frontend separately on Vercel (see README). The blockchain must be
+# a real network (e.g. Sepolia) — set RPC_URL, PRIVATE_KEY and CONTRACT_ADDRESS.
+databases:
+  - name: medichain-db
+    databaseName: medichain
+    plan: free
+
+services:
+  - type: web
+    name: medichain-ml
+    runtime: python
+    rootDir: ml_service
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers 2 --timeout 60 app:app
+    healthCheckPath: /health
+    envVars:
+      - key: HF_ACCESS_TOKEN
+        sync: false
+      - key: HF_XRAY_ID
+        value: Rishika08/chest-xray-pneumonia-detector
+      - key: HF_VALIDATOR_ID
+        value: Rishika08/medical-report-validator
+
+  - type: web
+    name: medichain-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install
+    startCommand: npm run migrate && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medichain-db
+          property: connectionString
+      - key: PGSSL
+        value: "true"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      # Internal service URL — set to http://medichain-ml:10000 in the dashboard
+      # (Render exposes private services on port 10000).
+      - key: ML_SERVICE_URL
+        sync: false
+      # Set these in the dashboard:
+      - key: CLIENT_URL # https://your-frontend.vercel.app
+        sync: false
+      - key: IPFS_JWT
+        sync: false
+      - key: RPC_URL # Alchemy/Infura Sepolia URL
+        sync: false
+      - key: PRIVATE_KEY # funded wallet with UPLOADER_ROLE
+        sync: false
+      - key: CONTRACT_ADDRESS # deployed contract address
+        sync: false

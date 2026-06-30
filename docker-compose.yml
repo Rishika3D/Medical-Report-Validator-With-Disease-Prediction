@@ -1,0 +1,86 @@
+# MediChain full stack — `docker compose up --build`
+# Brings up Postgres, a local Hardhat chain (auto-deploys the contract), the ML
+# service, the API and the web app. Secrets are read from a local .env file
+# (copy .env.example -> .env). Sensible defaults let it boot with zero config.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: medichain
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d medichain"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  chain:
+    build: ./blockchain
+    volumes:
+      - chain-shared:/shared
+    expose:
+      - "8545"
+    ports:
+      - "8545:8545"
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /shared/deployment.json"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  ml:
+    build: ./ml_service
+    environment:
+      PORT: 5001
+      HF_ACCESS_TOKEN: ${HF_ACCESS_TOKEN:-}
+      HF_XRAY_ID: ${HF_XRAY_ID:-Rishika08/chest-xray-pneumonia-detector}
+      HF_VALIDATOR_ID: ${HF_VALIDATOR_ID:-Rishika08/medical-report-validator}
+      ALLOWED_ORIGINS: http://localhost:3000
+    expose:
+      - "5001"
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+      chain:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5050
+      LOG_LEVEL: info
+      CLIENT_URL: http://localhost:3000
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/medichain
+      JWT_SECRET: ${JWT_SECRET:-please-change-this-in-production}
+      JWT_EXPIRES_IN: 7d
+      RPC_URL: http://chain:8545
+      ML_SERVICE_URL: http://ml:5001
+      IPFS_JWT: ${IPFS_JWT:-}
+      IPFS_API_KEY: ${IPFS_API_KEY:-}
+      IPFS_API_SECRET: ${IPFS_API_SECRET:-}
+      WAIT_FOR_CHAIN: "true"
+      DEPLOYMENT_FILE: /shared/deployment.json
+    volumes:
+      - chain-shared:/shared:ro
+    ports:
+      - "5050:5050"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:5050/api
+        NEXT_PUBLIC_EXPLORER_TX_URL: ${NEXT_PUBLIC_EXPLORER_TX_URL:-}
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+
+volumes:
+  pgdata:
+  chain-shared:

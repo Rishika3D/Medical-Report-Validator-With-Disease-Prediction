@@ -5,73 +5,69 @@ import { Shield, Brain, Lock, Menu, X, Cross } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { useState } from "react"
-import type { AppView } from "@/app/page"
+import type { AppView, DashboardTab } from "@/app/page"
 
 interface LandingPageProps {
   onNavigate: (view: AppView) => void
+  onGetStarted: (tab: DashboardTab) => void
+  isAuthenticated: boolean
 }
 
-export default function LandingPage({ onNavigate }: LandingPageProps) {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+const trustIndicators = [
+  {
+    icon: Brain,
+    title: "AI Analysis",
+    description: "Medical images and reports analysed by AI models served via HuggingFace.",
+  },
+  {
+    icon: Lock,
+    title: "IPFS Storage",
+    description: "Documents are pinned to IPFS so the original is always retrievable.",
+  },
+  {
+    icon: Shield,
+    title: "Immutable Proof",
+    description: "A cryptographic hash of every report is recorded on the blockchain.",
+  },
+]
 
-  const trustIndicators = [
-    {
-      icon: Brain,
-      title: "AI Precision",
-      description: "State-of-the-art neural networks trained on millions of medical records",
-    },
-    {
-      icon: Lock,
-      title: "E2E Encryption",
-      description: "Your data is encrypted at rest and in transit with AES-256",
-    },
-    {
-      icon: Shield,
-      title: "Immutable Record",
-      description: "Every diagnosis is permanently secured on the Ethereum blockchain",
-    },
-  ]
+export default function LandingPage({ onNavigate, onGetStarted, isAuthenticated }: LandingPageProps) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const primaryCta = isAuthenticated ? "Open Dashboard" : "Get Started"
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Navbar with glassmorphism */}
       <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200/50 shadow-sm">
-        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8" aria-label="Main">
           <div className="flex items-center justify-between h-16">
-            {/* Logo */}
             <div className="flex items-center gap-2">
               <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-                <Cross className="w-5 h-5 text-white" />
+                <Cross className="w-5 h-5 text-white" aria-hidden="true" />
               </div>
               <span className="text-xl font-bold text-slate-800">MediChain</span>
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
-              <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                Features
-              </a>
-              <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                How it Works
-              </a>
-              <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                Pricing
-              </a>
+              <a href="#features" className="text-slate-600 hover:text-teal-600 transition-colors">Features</a>
+              <a href="#how-it-works" className="text-slate-600 hover:text-teal-600 transition-colors">How it Works</a>
               <Button
-                onClick={() => onNavigate("auth")}
-                className="bg-teal-600 hover:bg-teal-700 text-white rounded-2xl px-6"
+                onClick={() => (isAuthenticated ? onGetStarted("new") : onNavigate("auth"))}
+                className="bg-teal-600 hover:bg-teal-700 text-white px-6"
               >
-                Login
+                {isAuthenticated ? "Dashboard" : "Login"}
               </Button>
             </div>
 
-            {/* Mobile menu button */}
-            <button className="md:hidden p-2 text-slate-600" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+            <button
+              className="md:hidden p-2 text-slate-600"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileMenuOpen}
+            >
               {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
 
-          {/* Mobile Navigation */}
           {mobileMenuOpen && (
             <motion.div
               initial={{ opacity: 0, y: -10 }}
@@ -79,20 +75,13 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               className="md:hidden py-4 border-t border-slate-200"
             >
               <div className="flex flex-col gap-4">
-                <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                  Features
-                </a>
-                <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                  How it Works
-                </a>
-                <a href="#" className="text-slate-600 hover:text-teal-600 transition-colors">
-                  Pricing
-                </a>
+                <a href="#features" className="text-slate-600 hover:text-teal-600 transition-colors">Features</a>
+                <a href="#how-it-works" className="text-slate-600 hover:text-teal-600 transition-colors">How it Works</a>
                 <Button
-                  onClick={() => onNavigate("auth")}
-                  className="bg-teal-600 hover:bg-teal-700 text-white rounded-2xl w-full"
+                  onClick={() => (isAuthenticated ? onGetStarted("new") : onNavigate("auth"))}
+                  className="bg-teal-600 hover:bg-teal-700 text-white w-full"
                 >
-                  Login
+                  {isAuthenticated ? "Dashboard" : "Login"}
                 </Button>
               </div>
             </motion.div>
@@ -100,7 +89,6 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
         </nav>
       </header>
 
-      {/* Hero Section */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
         <div className="text-center">
           <motion.h1
@@ -109,7 +97,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             transition={{ duration: 0.6 }}
             className="text-4xl md:text-6xl font-bold text-slate-900 max-w-4xl mx-auto leading-tight text-balance"
           >
-            Trustless AI Diagnostics on the Blockchain
+            Verifiable Medical Records on the Blockchain
           </motion.h1>
           <motion.p
             initial={{ opacity: 0, y: 20 }}
@@ -117,7 +105,7 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="mt-6 text-lg md:text-xl text-slate-600 max-w-2xl mx-auto text-pretty"
           >
-            Upload medical reports, get instant AI analysis, and secure the results forever on Ethereum.
+            Upload medical reports, get AI-assisted analysis, and anchor a tamper-proof hash on Ethereum.
           </motion.p>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -126,23 +114,23 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
             className="mt-10 flex flex-col sm:flex-row gap-4 justify-center"
           >
             <Button
-              onClick={() => onNavigate("dashboard")}
-              className="bg-teal-600 hover:bg-teal-700 text-white rounded-2xl px-8 py-6 text-lg shadow-sm"
+              onClick={() => onGetStarted("new")}
+              className="bg-teal-600 hover:bg-teal-700 text-white px-8 py-6 text-lg shadow-sm"
             >
-              Analyze Report
+              {primaryCta}
             </Button>
             <Button
+              onClick={() => onGetStarted("verify")}
               variant="outline"
-              className="border-teal-600 text-teal-600 hover:bg-teal-50 rounded-2xl px-8 py-6 text-lg bg-transparent"
+              className="border-teal-600 text-teal-600 hover:bg-teal-50 px-8 py-6 text-lg bg-transparent"
             >
-              Verify Hash
+              Verify a Document
             </Button>
           </motion.div>
         </div>
       </section>
 
-      {/* Trust Indicators */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
+      <section id="features" className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-20">
         <div className="grid md:grid-cols-3 gap-6">
           {trustIndicators.map((indicator, index) => (
             <motion.div
@@ -151,10 +139,10 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.3 + index * 0.1 }}
             >
-              <Card className="bg-white rounded-2xl shadow-sm border-slate-200/50 h-full">
+              <Card className="bg-white shadow-sm border-slate-200/50 h-full">
                 <CardContent className="p-6">
                   <div className="w-12 h-12 bg-teal-50 rounded-2xl flex items-center justify-center mb-4">
-                    <indicator.icon className="w-6 h-6 text-teal-600" />
+                    <indicator.icon className="w-6 h-6 text-teal-600" aria-hidden="true" />
                   </div>
                   <h3 className="text-lg font-semibold text-slate-900 mb-2">{indicator.title}</h3>
                   <p className="text-slate-600 text-sm">{indicator.description}</p>
@@ -162,6 +150,27 @@ export default function LandingPage({ onNavigate }: LandingPageProps) {
               </Card>
             </motion.div>
           ))}
+        </div>
+      </section>
+
+      <section id="how-it-works" className="bg-white border-t border-slate-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
+          <h2 className="text-2xl md:text-3xl font-bold text-slate-900 text-center mb-12">How it Works</h2>
+          <ol className="grid md:grid-cols-3 gap-8">
+            {[
+              { step: "1", title: "Upload", text: "A doctor uploads a medical report or X-ray for a patient address." },
+              { step: "2", title: "Analyse & Pin", text: "The file is analysed by AI and pinned to IPFS." },
+              { step: "3", title: "Anchor", text: "Its hash is written on-chain, creating immutable proof." },
+            ].map((item) => (
+              <li key={item.step} className="text-center">
+                <div className="w-12 h-12 rounded-full bg-teal-600 text-white font-bold flex items-center justify-center mx-auto mb-4">
+                  {item.step}
+                </div>
+                <h3 className="text-lg font-semibold text-slate-900 mb-2">{item.title}</h3>
+                <p className="text-slate-600 text-sm max-w-xs mx-auto">{item.text}</p>
+              </li>
+            ))}
+          </ol>
         </div>
       </section>
     </div>
