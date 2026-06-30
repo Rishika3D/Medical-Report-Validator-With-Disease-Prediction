@@ -1,7 +1,6 @@
-flask
-flask-cors
-scikit-learn
-pandas
-numpy
-pillow
-torch
+flask>=3.0
+flask-cors>=4.0
+gunicorn>=21.2
+huggingface_hub>=0.25
+pillow>=10.0
+python-dotenv>=1.0
