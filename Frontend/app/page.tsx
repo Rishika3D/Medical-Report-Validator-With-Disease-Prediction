@@ -5,7 +5,7 @@ import LandingPage from "@/components/landing-page"
 import AuthPage from "@/components/auth-page"
 import Dashboard from "@/components/dashboard"
 import DiagnosisResult from "@/components/diagnosis-result"
-import { Spinner } from "@/components/ui/spinner"
+import { BrandMark } from "@/components/brand"
 import type { SubmitResult } from "@/lib/api"
 import { loadSession, saveSession, clearSession, isTokenExpired, type Session } from "@/lib/auth"
 
@@ -62,8 +62,10 @@ export default function Home() {
 
   if (!hydrated) {
     return (
-      <main className="min-h-screen bg-background flex items-center justify-center">
-        <Spinner className="size-8 text-primary" />
+      <main className="min-h-screen bg-paper flex items-center justify-center">
+        <div className="animate-pulse">
+          <BrandMark className="w-11 h-11" />
+        </div>
         <span className="sr-only">Loading</span>
       </main>
     )

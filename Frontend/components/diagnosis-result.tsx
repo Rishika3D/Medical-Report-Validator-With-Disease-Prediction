@@ -1,19 +1,17 @@
 "use client"
 
 import { motion } from "framer-motion"
-import { Cross, ArrowLeft, CheckCircle2, Copy, ExternalLink, Download, Check } from "lucide-react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Copy, ExternalLink, Download, Check, ShieldCheck } from "lucide-react"
 import { useState } from "react"
 import type { SubmitResult } from "@/lib/api"
+import { BrandMark, Wordmark } from "@/components/brand"
+import { cn } from "@/lib/utils"
 
 interface DiagnosisResultProps {
   onBack: () => void
   result: SubmitResult | null
 }
 
-// Optional block explorer base (e.g. https://sepolia.etherscan.io/tx/). Empty for local chains.
 const EXPLORER_TX_BASE = process.env.NEXT_PUBLIC_EXPLORER_TX_URL || ""
 
 export default function DiagnosisResult({ onBack, result }: DiagnosisResultProps) {
@@ -21,9 +19,9 @@ export default function DiagnosisResult({ onBack, result }: DiagnosisResultProps
 
   if (!result) {
     return (
-      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 text-center">
-        <p className="text-slate-600 mb-4">No result to display.</p>
-        <Button onClick={onBack} className="bg-teal-600 hover:bg-teal-700 text-white">Back to Dashboard</Button>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-paper p-4 text-center">
+        <p className="mb-4 text-ink-soft">No result to display.</p>
+        <button onClick={onBack} className="rounded-lg bg-pine px-6 py-3 font-medium text-paper-2 hover:bg-pine-2 transition-colors">Back to Dashboard</button>
       </div>
     )
   }
@@ -33,115 +31,110 @@ export default function DiagnosisResult({ onBack, result }: DiagnosisResultProps
   const confidencePct = `${(result.mlConfidence * 100).toFixed(1)}%`
 
   const handleCopy = async () => {
-    try {
-      await navigator.clipboard.writeText(txHash)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    } catch {
-      /* clipboard unavailable */
-    }
+    try { await navigator.clipboard.writeText(txHash); setCopied(true); setTimeout(() => setCopied(false), 2000) } catch {}
   }
-
   const handleExport = () => {
     const blob = new Blob([JSON.stringify(result, null, 2)], { type: "application/json" })
     const url = URL.createObjectURL(blob)
     const a = document.createElement("a")
-    a.href = url
-    a.download = `medichain-report-${txHash.slice(0, 10)}.json`
-    a.click()
+    a.href = url; a.download = `medichain-record-${txHash.slice(0, 10)}.json`; a.click()
     URL.revokeObjectURL(url)
   }
 
+  const rows: [string, string][] = [
+    ["IPFS CID", result.ipfsHash],
+    ["SHA-256 fingerprint", result.contentHash],
+    ["Transaction hash", txHash],
+  ]
+
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button onClick={onBack} className="flex items-center gap-2 text-slate-600 hover:text-teal-600 transition-colors">
-              <ArrowLeft className="w-5 h-5" aria-hidden="true" />
-              <span className="hidden sm:inline">Back to Dashboard</span>
-            </button>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-teal-600 rounded-lg flex items-center justify-center">
-                <Cross className="w-5 h-5 text-white" aria-hidden="true" />
-              </div>
-              <span className="text-lg font-bold text-slate-800">MediChain</span>
-            </div>
-            <Button variant="outline" size="sm" onClick={handleExport} className="bg-transparent">
-              <Download className="w-4 h-4 sm:mr-2" aria-hidden="true" />
-              <span className="hidden sm:inline">Export</span>
-            </Button>
-          </div>
+    <div className="min-h-screen bg-paper">
+      <header className="border-b border-line bg-paper-2/60">
+        <div className="mx-auto flex h-16 max-w-5xl items-center justify-between px-5 sm:px-8">
+          <button onClick={onBack} className="flex items-center gap-2 text-ink-soft hover:text-pine transition-colors">
+            <ArrowLeft className="h-5 w-5" aria-hidden="true" /><span className="hidden sm:inline eyebrow">Dashboard</span>
+          </button>
+          <Wordmark />
+          <button onClick={handleExport} className="inline-flex items-center gap-2 rounded-lg border border-line-2 bg-paper-2 px-3.5 py-2 text-sm text-ink hover:border-pine transition-colors">
+            <Download className="h-4 w-4" aria-hidden="true" /><span className="hidden sm:inline">Export</span>
+          </button>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid lg:grid-cols-2 gap-8">
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }}>
-            <Card className="bg-white shadow-sm border-slate-200/50 h-full">
-              <CardHeader className="border-b border-slate-200">
-                <CardTitle className="text-lg text-slate-800">Report Summary</CardTitle>
-              </CardHeader>
-              <CardContent className="p-6 space-y-4">
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <p className="text-sm text-slate-500 mb-1">IPFS CID</p>
-                  <p className="font-mono text-sm text-slate-800 break-all">{result.ipfsHash}</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <p className="text-sm text-slate-500 mb-1">SHA-256 File Hash</p>
-                  <p className="font-mono text-xs text-slate-800 break-all">{result.contentHash}</p>
-                </div>
-                <div className="p-4 bg-slate-50 rounded-xl">
-                  <p className="text-sm text-slate-500 mb-1">AI Prediction</p>
-                  <p className="text-lg font-semibold text-slate-800">{result.mlPrediction}</p>
-                </div>
-              </CardContent>
-            </Card>
+      <main className="mx-auto max-w-5xl px-5 py-12 sm:px-8">
+        <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }} className="text-center">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-moss-tint">
+            <ShieldCheck className="h-8 w-8 text-moss" aria-hidden="true" />
+          </div>
+          <p className="eyebrow text-gold-2">Certificate issued</p>
+          <h1 className="mt-2 font-display text-4xl tracking-tight text-ink">Report recorded on-chain</h1>
+          <p className="mt-2 text-ink-soft">An immutable proof of this document now exists on Ethereum.</p>
+        </motion.div>
+
+        <div className="mt-10 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
+          {/* AI reading */}
+          <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.1 }}
+            className="rounded-2xl border border-line-2 bg-paper-2 p-7">
+            <p className="eyebrow text-ink-faint">AI reading</p>
+            <p className="mt-4 font-display text-3xl text-ink">{result.mlPrediction}</p>
+            <div className="mt-5 flex items-center justify-between">
+              <span className="text-sm text-ink-soft">Confidence</span>
+              <span className={cn("rounded-full px-3 py-1 text-sm font-medium",
+                isNormal ? "bg-moss-tint text-moss" : "bg-gold-tint text-gold-2")}>{confidencePct}</span>
+            </div>
+            <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-paper">
+              <div className={cn("h-full rounded-full", isNormal ? "bg-moss" : "bg-gold")} style={{ width: `${Math.max(result.mlConfidence * 100, 4)}%` }} />
+            </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4, delay: 0.1 }} className="space-y-6">
-            <Card className={`shadow-sm border-0 overflow-hidden ${isNormal ? "bg-emerald-50" : "bg-amber-50"}`}>
-              <CardContent className="p-6">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${isNormal ? "bg-emerald-100" : "bg-amber-100"}`}>
-                      <CheckCircle2 className={`w-6 h-6 ${isNormal ? "text-emerald-600" : "text-amber-600"}`} aria-hidden="true" />
-                    </div>
-                    <div>
-                      <h2 className={`text-xl font-bold ${isNormal ? "text-emerald-800" : "text-amber-800"}`}>{result.mlPrediction}</h2>
-                      <p className={`text-sm ${isNormal ? "text-emerald-600" : "text-amber-600"}`}>Report recorded on-chain</p>
-                    </div>
-                  </div>
-                  <Badge className={`px-3 py-1 ${isNormal ? "bg-emerald-600" : "bg-amber-600"} text-white`}>
-                    {confidencePct}
-                  </Badge>
-                </div>
-              </CardContent>
-            </Card>
+          {/* Certificate */}
+          <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.5, delay: 0.15 }}
+            className="relative overflow-hidden rounded-2xl border border-line-2 bg-pine p-7 text-paper-2">
+            <div className="pointer-events-none absolute inset-0 opacity-50"
+              style={{ background: "radial-gradient(90% 60% at 90% 0%, rgba(176,129,42,0.28), transparent 60%)" }} />
+            <div className="relative flex items-center justify-between">
+              <p className="eyebrow text-gold-tint/80">Blockchain proof</p>
+              <BrandMark className="h-7 w-7" />
+            </div>
 
-            <Card className="bg-slate-900 shadow-sm border-0 overflow-hidden">
-              <CardContent className="p-6">
-                <div className="mb-4">
-                  <h3 className="text-lg font-semibold text-white mb-1">Blockchain Proof</h3>
-                  <p className="text-sm text-slate-400">Transaction hash recorded on-chain</p>
-                </div>
-                <div className="bg-slate-800 rounded-xl p-4 flex items-center justify-between gap-4">
-                  <code className="text-emerald-400 font-mono text-sm truncate">{txHash}</code>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <button onClick={handleCopy} aria-label="Copy transaction hash" className="text-slate-400 hover:text-white transition-colors">
-                      {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                    {EXPLORER_TX_BASE && (
-                      <a href={`${EXPLORER_TX_BASE}${txHash}`} target="_blank" rel="noopener noreferrer" aria-label="View on block explorer" className="text-slate-400 hover:text-white transition-colors">
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+            <dl className="relative mt-6 space-y-4">
+              {rows.map(([k, v]) => (
+                <div key={k} className="border-t border-paper-2/15 pt-4 first:border-0 first:pt-0">
+                  <dt className="eyebrow text-paper-2/50">{k}</dt>
+                  <dd className="mt-1.5 flex items-center gap-2">
+                    <code className="font-mono text-sm text-gold-tint break-all">{v}</code>
+                    {k === "Transaction hash" && (
+                      <span className="flex flex-shrink-0 items-center gap-1.5">
+                        <button onClick={handleCopy} aria-label="Copy transaction hash" className="text-paper-2/60 hover:text-paper-2 transition-colors">
+                          {copied ? <Check className="h-4 w-4 text-moss" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                        {EXPLORER_TX_BASE && (
+                          <a href={`${EXPLORER_TX_BASE}${txHash}`} target="_blank" rel="noopener noreferrer" aria-label="View on block explorer" className="text-paper-2/60 hover:text-paper-2 transition-colors">
+                            <ExternalLink className="h-4 w-4" />
+                          </a>
+                        )}
+                      </span>
                     )}
-                  </div>
+                  </dd>
                 </div>
-                {copied && <p role="status" className="text-emerald-400 text-sm mt-2">Copied to clipboard</p>}
-              </CardContent>
-            </Card>
+              ))}
+            </dl>
+
+            <div className="relative mt-6 flex items-center justify-between border-t border-paper-2/15 pt-5">
+              <span className="font-mono text-[0.7rem] text-paper-2/50">Ethereum · chainId 31337</span>
+              <div className="flex h-11 w-11 items-center justify-center rounded-full bg-gold/15">
+                <div className="flex h-7 w-7 items-center justify-center rounded-full border border-gold/50">
+                  <ShieldCheck className="h-3.5 w-3.5 text-gold-tint" />
+                </div>
+              </div>
+            </div>
           </motion.div>
+        </div>
+
+        <div className="mt-8 text-center">
+          <button onClick={onBack} className="inline-flex items-center gap-2 rounded-lg bg-pine px-7 py-3 font-medium text-paper-2 hover:bg-pine-2 transition-colors">
+            Record another
+          </button>
         </div>
       </main>
     </div>
