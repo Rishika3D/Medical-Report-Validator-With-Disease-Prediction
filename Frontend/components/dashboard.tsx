@@ -69,11 +69,27 @@ function AddressField({
   )
 }
 
-function NewAnalysisTab({ token, onUploadSuccess }: Pick<DashboardProps, "token" | "onUploadSuccess">) {
+function NewAnalysisTab({ token, user, onUploadSuccess }: Pick<DashboardProps, "token" | "user" | "onUploadSuccess">) {
   const [file, setFile] = useState<File | null>(null)
   const [address, setAddress] = useState("")
   const [progress, setProgress] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  const canSubmit = user.role === "doctor" || user.role === "admin"
+  if (!canSubmit) {
+    return (
+      <div className="max-w-2xl">
+        <h1 className="text-2xl md:text-3xl font-bold text-slate-900 mb-2">New Analysis</h1>
+        <div className="mt-6 rounded-2xl border border-slate-200 bg-white p-8 text-center">
+          <ShieldCheck className="w-10 h-10 mx-auto mb-3 text-teal-600" aria-hidden="true" />
+          <p className="font-medium text-slate-800">Recording reports is for clinicians</p>
+          <p className="text-sm text-slate-500 mt-1">
+            Your account is registered as a patient. You can verify documents and view your history.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const submit = async () => {
     setError(null)
@@ -304,7 +320,7 @@ export default function Dashboard({ activeTab, onTabChange, onUploadSuccess, onL
 
   const renderTab = () => {
     switch (activeTab) {
-      case "new": return <NewAnalysisTab token={token} onUploadSuccess={onUploadSuccess} />
+      case "new": return <NewAnalysisTab token={token} user={user} onUploadSuccess={onUploadSuccess} />
       case "verify": return <VerifyTab token={token} />
       case "history": return <HistoryTab token={token} />
       case "settings": return <SettingsTab user={user} onLogout={onLogout} />

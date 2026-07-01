@@ -188,9 +188,9 @@ npx hardhat ignition deploy ./ignition/modules/DeployMedical.js --network sepoli
 | `GET` | `/api/health` | — | Service health (db, chain, ML) |
 | `POST` | `/api/auth/signup` | — | Create account |
 | `POST` | `/api/auth/login` | — | Sign in |
-| `POST` | `/api/reports/submit` | ✅ | Submit & anchor a report (multipart `report`, `patientAddress`) |
+| `POST` | `/api/reports/submit` | 🩺 doctor/admin | Submit & anchor a report (multipart `report`, `patientAddress`) |
 | `POST` | `/api/reports/verify` | ✅ | Verify a document against the chain |
-| `POST` | `/api/reports/repudiate` | ✅ | Revoke a report (`subject`, `index`, `reason`) |
+| `POST` | `/api/reports/repudiate` | 🛡️ admin | Revoke a report (`subject`, `index`, `reason`) |
 | `GET` | `/api/reports/history` | ✅ | Authenticated user's history |
 
 ---

@@ -3,7 +3,7 @@ import rateLimit from "express-rate-limit";
 import { reportController } from "../controllers/reportController.js";
 import { signup, login } from "../controllers/userController.js";
 import { upload } from "../middleware/uploadMiddleware.js";
-import { protect } from "../middleware/authMiddleware.js";
+import { protect, authorize } from "../middleware/authMiddleware.js";
 import db from "../db/db.js";
 import { getBlockchainStatus } from "../services/blockchain.js";
 import { getMlStatus } from "../services/aiService.js";
@@ -39,9 +39,11 @@ router.post("/auth/signup", authLimiter, signup);
 router.post("/auth/login", authLimiter, login);
 
 // --- Reports (protected) ---
+// Doctors/admins record reports; anyone signed in can verify or view history.
 router.post(
   "/reports/submit",
   protect,
+  authorize("doctor", "admin"),
   upload.single("report"),
   reportController.submitMedicalReport
 );
@@ -51,7 +53,12 @@ router.post(
   upload.single("report"),
   reportController.validateCertificate
 );
-router.post("/reports/repudiate", protect, reportController.repudiateDisease);
+router.post(
+  "/reports/repudiate",
+  protect,
+  authorize("admin"),
+  reportController.repudiateDisease
+);
 router.get("/reports/history", protect, reportController.getHistory);
 
 export default router;
